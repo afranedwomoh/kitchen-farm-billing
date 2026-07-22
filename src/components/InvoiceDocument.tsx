@@ -61,11 +61,11 @@ export const InvoiceDocument = forwardRef<HTMLDivElement, { data: DocData }>(fun
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative" }}>
         <div>
           {business.logoUrl ? (
-            <img src={business.logoUrl} alt={business.name} crossOrigin="anonymous" style={{ height: 130, marginBottom: 10, display: "block" }} />
+            <img src={business.logoUrl} alt={business.name} crossOrigin="anonymous" style={{ height: 130, marginBottom: -6, display: "block" }} />
           ) : (
             <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: -0.2 }}>{business.name}</div>
           )}
-          <div style={{ fontSize: 10, color: "#555", lineHeight: 1.4, marginTop: 2, whiteSpace: "pre-line" }}>
+          <div style={{ fontSize: 10, color: "#555", lineHeight: 1.4, marginTop: 0, whiteSpace: "pre-line" }}>
             {[business.address, business.phone, business.email].filter(Boolean).join("\n")}
           </div>
         </div>
