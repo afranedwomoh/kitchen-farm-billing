@@ -3,11 +3,21 @@ import jsPDF from "jspdf";
 import { toast } from "sonner";
 
 export async function exportNodeAsPng(node: HTMLElement, filename: string) {
+  const win = window.open("", "_blank");
   try {
     const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff", useCORS: true, allowTaint: true });
-    const url = canvas.toDataURL("image/png");
-    openOrDownload(url, filename);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        if (win) win.close();
+        toast.error("Export failed: could not generate image");
+        return;
+      }
+      const blobUrl = URL.createObjectURL(blob);
+      if (win) win.location.href = blobUrl;
+      else window.open(blobUrl, "_blank");
+    }, "image/png");
   } catch (e: any) {
+    if (win) win.close();
     toast.error(`Export failed: ${e.message ?? e}`);
   }
 }
@@ -33,18 +43,4 @@ export async function exportNodeAsPdf(node: HTMLElement, filename: string) {
     if (win) win.close();
     toast.error(`Export failed: ${e.message ?? e}`);
   }
-}
-
-function openOrDownload(dataUrl: string, filename: string) {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  if (isIOS) {
-    window.open(dataUrl, "_blank");
-    return;
-  }
-  const a = document.createElement("a");
-  a.href = dataUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
 }
