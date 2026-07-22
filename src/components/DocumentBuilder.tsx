@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Trash2, Plus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { formatMoney } from "@/lib/format";
 
@@ -29,6 +30,9 @@ export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved 
   const [vatRate, setVatRate] = useState(defaultVatRate);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [newCustOpen, setNewCustOpen] = useState(false);
+  const [nc, setNc] = useState({ name: "", phone: "", email: "", address: "" });
+  const [ncBusy, setNcBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -97,10 +101,13 @@ export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved 
       <div className="grid gap-3 md:grid-cols-2">
         <div>
           <Label>Customer</Label>
-          <Select value={customerId} onValueChange={setCustomerId}>
-            <SelectTrigger><SelectValue placeholder="Select a customer" /></SelectTrigger>
-            <SelectContent>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select value={customerId} onValueChange={setCustomerId}>
+              <SelectTrigger><SelectValue placeholder="Select a customer" /></SelectTrigger>
+              <SelectContent>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            </Select>
+            <Button type="button" variant="outline" size="icon" onClick={() => setNewCustOpen(true)} title="Add new customer"><UserPlus className="h-4 w-4" /></Button>
+          </div>
         </div>
         <div className="flex items-end gap-4">
           <div className="flex-1">
@@ -158,6 +165,34 @@ export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved 
       <div className="flex justify-end">
         <Button onClick={save} disabled={busy}>{busy ? "Saving…" : `Create ${kind}`}</Button>
       </div>
+
+      <Dialog open={newCustOpen} onOpenChange={setNewCustOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>New customer</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Name</Label><Input value={nc.name} onChange={(e) => setNc({ ...nc, name: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Phone</Label><Input value={nc.phone} onChange={(e) => setNc({ ...nc, phone: e.target.value })} /></div>
+              <div><Label>Email</Label><Input type="email" value={nc.email} onChange={(e) => setNc({ ...nc, email: e.target.value })} /></div>
+            </div>
+            <div><Label>Address</Label><Textarea value={nc.address} onChange={(e) => setNc({ ...nc, address: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button disabled={ncBusy || !nc.name} onClick={async () => {
+              setNcBusy(true);
+              try {
+                const { data, error } = await supabase.from("customers").insert({ ...nc, created_by: userId }).select("id,name").single();
+                if (error) throw error;
+                setCustomers((prev) => [...prev, data as Customer].sort((a, b) => a.name.localeCompare(b.name)));
+                setCustomerId(data.id);
+                setNc({ name: "", phone: "", email: "", address: "" });
+                setNewCustOpen(false);
+                toast.success("Customer added");
+              } catch (e: any) { toast.error(e.message); } finally { setNcBusy(false); }
+            }}>{ncBusy ? "Saving…" : "Save customer"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
