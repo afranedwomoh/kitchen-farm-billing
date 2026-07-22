@@ -97,7 +97,7 @@ function InvoicesPage() {
         </Table>
       </div>
       <Dialog open={!!viewId} onOpenChange={(o) => !o && setViewId(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
           {viewId && <InvoicePreview id={viewId} onStatusChanged={load} />}
         </DialogContent>
       </Dialog>
@@ -156,3 +156,4 @@ function InvoicePreview({ id, onStatusChanged }: { id: string; onStatusChanged: 
     </div>
   );
 }
+7
