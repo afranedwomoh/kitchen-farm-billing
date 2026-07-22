@@ -15,24 +15,36 @@ type Line = { product_id: string | null; product_name: string; product_image_url
 type Product = { id: string; name: string; price: number; image_url: string | null; quantity: number };
 type Customer = { id: string; name: string };
 
-export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved }: {
+export type EditInitial = {
+  editId: string;
+  customerId: string;
+  lines: Line[];
+  applyVat: boolean;
+  vatRate: number;
+  notes: string;
+};
+
+export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved, initial }: {
   kind: "quotation" | "invoice";
   userId: string;
   defaultVatRate: number;
   symbol: string;
   onSaved: (id: string) => void;
+  initial?: EditInitial;
 }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [customerId, setCustomerId] = useState<string>("");
-  const [lines, setLines] = useState<Line[]>([]);
-  const [applyVat, setApplyVat] = useState(true);
-  const [vatRate, setVatRate] = useState(defaultVatRate);
-  const [notes, setNotes] = useState("");
+  const [customerId, setCustomerId] = useState<string>(initial?.customerId ?? "");
+  const [lines, setLines] = useState<Line[]>(initial?.lines ?? []);
+  const [applyVat, setApplyVat] = useState(initial?.applyVat ?? true);
+  const [vatRate, setVatRate] = useState(initial?.vatRate ?? defaultVatRate);
+  const [notes, setNotes] = useState(initial?.notes ?? "");
   const [busy, setBusy] = useState(false);
   const [newCustOpen, setNewCustOpen] = useState(false);
   const [nc, setNc] = useState({ name: "", phone: "", email: "", address: "" });
   const [ncBusy, setNcBusy] = useState(false);
+
+  const isEditing = !!initial?.editId;
 
   useEffect(() => {
     (async () => {
@@ -76,22 +88,28 @@ export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved 
         total,
         notes,
       };
-      if (kind === "quotation") {
-        const { data: q, error } = await supabase.from("quotations").insert(header).select("id").single();
+      const table = kind === "quotation" ? "quotations" : "invoices";
+      const itemsTable = kind === "quotation" ? "quotation_items" : "invoice_items";
+      const fkField = kind === "quotation" ? "quotation_id" : "invoice_id";
+
+      if (isEditing && initial) {
+        const { error } = await supabase.from(table).update(header).eq("id", initial.editId);
         if (error) throw error;
-        const items = lines.map((l) => ({ ...l, quotation_id: q.id, line_total: l.unit_price * l.quantity }));
-        const { error: ie } = await supabase.from("quotation_items").insert(items);
+        const { error: de } = await supabase.from(itemsTable).delete().eq(fkField, initial.editId);
+        if (de) throw de;
+        const items = lines.map((l) => ({ ...l, [fkField]: initial.editId, line_total: l.unit_price * l.quantity }));
+        const { error: ie } = await supabase.from(itemsTable).insert(items);
         if (ie) throw ie;
-        toast.success("Quotation created");
-        onSaved(q.id);
+        toast.success(`${kind === "quotation" ? "Quotation" : "Invoice"} updated`);
+        onSaved(initial.editId);
       } else {
-        const { data: inv, error } = await supabase.from("invoices").insert(header).select("id").single();
+        const { data: row, error } = await supabase.from(table).insert(header).select("id").single();
         if (error) throw error;
-        const items = lines.map((l) => ({ ...l, invoice_id: inv.id, line_total: l.unit_price * l.quantity }));
-        const { error: ie } = await supabase.from("invoice_items").insert(items);
+        const items = lines.map((l) => ({ ...l, [fkField]: row.id, line_total: l.unit_price * l.quantity }));
+        const { error: ie } = await supabase.from(itemsTable).insert(items);
         if (ie) throw ie;
-        toast.success("Invoice created");
-        onSaved(inv.id);
+        toast.success(`${kind === "quotation" ? "Quotation" : "Invoice"} created`);
+        onSaved(row.id);
       }
     } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
   }
@@ -163,7 +181,7 @@ export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved 
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={save} disabled={busy}>{busy ? "Saving…" : `Create ${kind}`}</Button>
+        <Button onClick={save} disabled={busy}>{busy ? "Saving…" : isEditing ? `Update ${kind}` : `Create ${kind}`}</Button>
       </div>
 
       <Dialog open={newCustOpen} onOpenChange={setNewCustOpen}>
