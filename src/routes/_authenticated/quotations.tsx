@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ function QuotationsPage() {
   const [vat, setVat] = useState(20);
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const router = useRouter();
 
   async function load() {
     const { data } = await supabase.from("quotations").select("id,number,total,status,created_at,customer:customers(name)").order("created_at", { ascending: false });
@@ -51,7 +52,7 @@ function QuotationsPage() {
           <DialogContent className="max-w-2xl">
             <DialogHeader><DialogTitle>New quotation</DialogTitle></DialogHeader>
             <DocumentBuilder kind="quotation" userId={user?.id ?? ""} defaultVatRate={vat} symbol={symbol}
-              onSaved={(id) => { setOpen(false); navigate({ to: "/quotations/$id", params: { id } }); }} />
+              onSaved={async (id) => { setOpen(false); await router.invalidate(); navigate({ to: "/quotations/$id", params: { id } }); }} />
           </DialogContent>
         </Dialog>
       </div>
