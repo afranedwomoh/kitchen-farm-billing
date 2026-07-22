@@ -1,13 +1,17 @@
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus } from "lucide-react";
+import { Plus, FileDown, ImageDown, ArrowRightCircle } from "lucide-react";
 import { formatDate, formatMoney } from "@/lib/format";
 import { DocumentBuilder } from "@/components/DocumentBuilder";
+import { InvoiceDocument, type DocData } from "@/components/InvoiceDocument";
+import { getSignedUrl, urlToDataUrl } from "@/lib/storage-helper";
+import { exportNodeAsPdf, exportNodeAsPng } from "@/lib/export-invoice";
 import { useSession } from "@/hooks/useSession";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/quotations")({
   head: () => ({
@@ -29,6 +33,7 @@ function QuotationsPage() {
   const [symbol, setSymbol] = useState("GH₵");
   const [vat, setVat] = useState(20);
   const [open, setOpen] = useState(false);
+  const [viewId, setViewId] = useState<string | null>(null);
   const navigate = useNavigate();
   const router = useRouter();
 
@@ -52,7 +57,7 @@ function QuotationsPage() {
           <DialogContent className="max-w-2xl">
             <DialogHeader><DialogTitle>New quotation</DialogTitle></DialogHeader>
             <DocumentBuilder kind="quotation" userId={user?.id ?? ""} defaultVatRate={vat} symbol={symbol}
-              onSaved={async (id) => { setOpen(false); await router.invalidate(); navigate({ to: "/quotations/$id", params: { id } }); }} />
+              onSaved={async (id) => { setOpen(false); await router.invalidate(); await load(); setViewId(id); }} />
           </DialogContent>
         </Dialog>
       </div>
@@ -63,8 +68,8 @@ function QuotationsPage() {
           </TableHeader>
           <TableBody>
             {rows.map((r) => (
-              <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate({ to: "/quotations/$id", params: { id: r.id } })}>
-                <TableCell className="font-medium"><Link to="/quotations/$id" params={{ id: r.id }}>{r.number}</Link></TableCell>
+              <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setViewId(r.id)}>
+                <TableCell className="font-medium">{r.number}</TableCell>
                 <TableCell>{r.customer?.name ?? "—"}</TableCell>
                 <TableCell>{formatDate(r.created_at)}</TableCell>
                 <TableCell className="capitalize">{r.status}</TableCell>
@@ -74,6 +79,80 @@ function QuotationsPage() {
             {rows.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No quotations yet.</TableCell></TableRow>}
           </TableBody>
         </Table>
+      </div>
+      <Dialog open={!!viewId} onOpenChange={(o) => !o && setViewId(null)}>
+        <DialogContent className="max-w-2xl">
+          {viewId && <QuotationPreview id={viewId} onConverted={(invId) => { setViewId(null); navigate({ to: "/invoices" }); }} />}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function QuotationPreview({ id, onConverted }: { id: string; onConverted: (invoiceId: string) => void }) {
+  const [data, setData] = useState<DocData | null>(null);
+  const [converted, setConverted] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
+
+  async function load() {
+    const { data: q, error } = await supabase.from("quotations")
+      .select("*, customer:customers(*), items:quotation_items(*)").eq("id", id).single();
+    if (error) return toast.error(error.message);
+    const { data: settings } = await supabase.from("business_settings").select("*").eq("id", 1).maybeSingle();
+    if (!settings) return;
+    const logoUrl = settings.logo_url ? await getSignedUrl("business-assets", settings.logo_url).then((u) => (u ? urlToDataUrl(u) : null)) : null;
+    const items = await Promise.all((q.items ?? []).map(async (it: any) => ({
+      product_name: it.product_name,
+      product_image_url_signed: it.product_image_url ? await getSignedUrl("product-images", it.product_image_url).then((u) => (u ? urlToDataUrl(u) : null)) : null,
+      unit_price: Number(it.unit_price), quantity: it.quantity, line_total: Number(it.line_total),
+    })));
+    setConverted(q.converted_invoice_id ?? null);
+    setData({
+      kind: "QUOTATION", number: q.number, date: q.created_at,
+      business: { name: settings.name, address: settings.address, phone: settings.phone, email: settings.email, logoUrl },
+      customer: q.customer, items,
+      subtotal: Number(q.subtotal), vat_rate: Number(q.vat_rate), vat_amount: Number(q.vat_amount), total: Number(q.total),
+      currency_symbol: settings.currency_symbol, notes: q.notes,
+    });
+  }
+
+  async function convert() {
+    if (!data) return;
+    setBusy(true);
+    try {
+      const { data: q } = await supabase.from("quotations").select("*, items:quotation_items(*)").eq("id", id).single();
+      if (!q) throw new Error("Missing quotation");
+      const { data: user } = await supabase.auth.getUser();
+      const { data: inv, error } = await supabase.from("invoices").insert({
+        customer_id: q.customer_id, created_by: user.user!.id,
+        subtotal: q.subtotal, vat_rate: q.vat_rate, vat_amount: q.vat_amount, total: q.total,
+        notes: q.notes, from_quotation_id: q.id,
+      }).select("id").single();
+      if (error) throw error;
+      const items = (q.items ?? []).map((it: any) => ({
+        invoice_id: inv.id, product_id: it.product_id, product_name: it.product_name,
+        product_image_url: it.product_image_url, unit_price: it.unit_price, quantity: it.quantity, line_total: it.line_total,
+      }));
+      const { error: ie } = await supabase.from("invoice_items").insert(items);
+      if (ie) throw ie;
+      await supabase.from("quotations").update({ status: "converted", converted_invoice_id: inv.id }).eq("id", id);
+      toast.success("Converted to invoice");
+      onConverted(inv.id);
+    } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-center bg-muted/30 p-4 rounded-lg overflow-auto max-h-[60vh]">
+        {data && <InvoiceDocument ref={ref} data={data} />}
+      </div>
+      <div className="flex gap-2 justify-end">
+        <Button variant="outline" size="sm" onClick={() => ref.current && exportNodeAsPng(ref.current, `${data?.number}.png`)} disabled={!data}><ImageDown className="h-4 w-4 mr-1" /> PNG</Button>
+        <Button variant="outline" size="sm" onClick={() => ref.current && exportNodeAsPdf(ref.current, `${data?.number}.pdf`)} disabled={!data}><FileDown className="h-4 w-4 mr-1" /> PDF</Button>
+        {!converted && <Button size="sm" onClick={convert} disabled={busy || !data}><ArrowRightCircle className="h-4 w-4 mr-1" /> Convert to invoice</Button>}
       </div>
     </div>
   );
