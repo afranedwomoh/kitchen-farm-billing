@@ -101,10 +101,13 @@ export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved 
       <div className="grid gap-3 md:grid-cols-2">
         <div>
           <Label>Customer</Label>
-          <Select value={customerId} onValueChange={setCustomerId}>
-            <SelectTrigger><SelectValue placeholder="Select a customer" /></SelectTrigger>
-            <SelectContent>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select value={customerId} onValueChange={setCustomerId}>
+              <SelectTrigger><SelectValue placeholder="Select a customer" /></SelectTrigger>
+              <SelectContent>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+            </Select>
+            <Button type="button" variant="outline" size="icon" onClick={() => setNewCustOpen(true)} title="Add new customer"><UserPlus className="h-4 w-4" /></Button>
+          </div>
         </div>
         <div className="flex items-end gap-4">
           <div className="flex-1">
