@@ -49,10 +49,10 @@ function Dashboard() {
   }, [user?.id]);
 
   const cards = [
-    { label: "Products", value: stats.products, icon: Package, to: "/products" as const },
-    { label: "Customers", value: stats.customers, icon: Users, to: "/customers" as const },
-    { label: "Quotations", value: stats.quotations, icon: FileText, to: "/quotations" as const },
-    { label: isAdmin ? "Invoices" : "My invoices", value: stats.invoices, icon: Receipt, to: "/invoices" as const },
+    { label: "Products", value: stats.products, icon: Package, to: "/products" as const, tone: "primary" as const },
+    { label: "Customers", value: stats.customers, icon: Users, to: "/customers" as const, tone: "accent" as const },
+    { label: "Quotations", value: stats.quotations, icon: FileText, to: "/quotations" as const, tone: "primary" as const },
+    { label: isAdmin ? "Invoices" : "My invoices", value: stats.invoices, icon: Receipt, to: "/invoices" as const, tone: "accent" as const },
   ];
 
   return (
@@ -64,10 +64,12 @@ function Dashboard() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
           <Link key={c.label} to={c.to} className="block">
-            <Card className="transition-colors hover:bg-muted/50 hover:border-primary/50 cursor-pointer">
+            <Card className="transition-all hover:shadow-md hover:-translate-y-0.5 hover:border-primary/40 cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{c.label}</CardTitle>
-                <c.icon className="h-4 w-4 text-muted-foreground" />
+                <div className={`h-9 w-9 rounded-full flex items-center justify-center ${c.tone === "primary" ? "bg-primary/10 text-primary" : "bg-accent text-accent-foreground"}`}>
+                  <c.icon className="h-4 w-4" />
+                </div>
               </CardHeader>
               <CardContent><div className="text-2xl font-semibold">{c.value}</div></CardContent>
             </Card>
@@ -75,17 +77,17 @@ function Dashboard() {
         ))}
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="border-l-4 border-l-primary">
           <CardHeader><CardTitle>Revenue (paid)</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-semibold">{formatMoney(stats.revenue, stats.symbol)}</div></CardContent>
+          <CardContent><div className="text-3xl font-semibold text-primary">{formatMoney(stats.revenue, stats.symbol)}</div></CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-destructive">
           <CardHeader><CardTitle>Outstanding (unpaid)</CardTitle></CardHeader>
           <CardContent><div className="text-3xl font-semibold text-destructive">{formatMoney(stats.unpaid, stats.symbol)}</div></CardContent>
         </Card>
       </div>
       {isAdmin && (
-        <Card>
+        <Card className="border-l-4 border-l-accent-foreground/40">
           <CardHeader className="flex flex-row items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
             <CardTitle>Low stock (≤ 5)</CardTitle>
