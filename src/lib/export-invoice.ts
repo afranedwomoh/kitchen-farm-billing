@@ -1,29 +1,43 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { toast } from "sonner";
 
 export async function exportNodeAsPng(node: HTMLElement, filename: string) {
-  const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff", useCORS: true, allowTaint: true });
-  const url = canvas.toDataURL("image/png");
-  triggerDownload(url, filename);
+  try {
+    const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff", useCORS: true, allowTaint: true });
+    const url = canvas.toDataURL("image/png");
+    openOrDownload(url, filename);
+  } catch (e: any) {
+    toast.error(`Export failed: ${e.message ?? e}`);
+  }
 }
 
 export async function exportNodeAsPdf(node: HTMLElement, filename: string) {
-  const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff", useCORS: true, allowTaint: true });
-  const imgData = canvas.toDataURL("image/png");
-  // A5 portrait: 148 x 210 mm
-  const pdf = new jsPDF({ unit: "mm", format: "a5", orientation: "portrait" });
-  const pageW = pdf.internal.pageSize.getWidth();
-  const pageH = pdf.internal.pageSize.getHeight();
-  const imgRatio = canvas.width / canvas.height;
-  const pageRatio = pageW / pageH;
-  let w = pageW, h = pageH;
-  if (imgRatio > pageRatio) h = pageW / imgRatio; else w = pageH * imgRatio;
-  const x = (pageW - w) / 2, y = (pageH - h) / 2;
-  pdf.addImage(imgData, "PNG", x, y, w, h);
-  pdf.save(filename);
+  try {
+    const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff", useCORS: true, allowTaint: true });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ unit: "mm", format: "a5", orientation: "portrait" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgRatio = canvas.width / canvas.height;
+    const pageRatio = pageW / pageH;
+    let w = pageW, h = pageH;
+    if (imgRatio > pageRatio) h = pageW / imgRatio; else w = pageH * imgRatio;
+    const x = (pageW - w) / 2, y = (pageH - h) / 2;
+    pdf.addImage(imgData, "PNG", x, y, w, h);
+    const blobUrl = pdf.output("bloburl") as unknown as string;
+    window.open(blobUrl, "_blank");
+  } catch (e: any) {
+    toast.error(`Export failed: ${e.message ?? e}`);
+  }
 }
 
-function triggerDownload(dataUrl: string, filename: string) {
+function openOrDownload(dataUrl: string, filename: string) {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS) {
+    window.open(dataUrl, "_blank");
+    return;
+  }
   const a = document.createElement("a");
   a.href = dataUrl;
   a.download = filename;
