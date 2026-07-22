@@ -75,18 +75,18 @@ function InvoicesPage() {
           </TableHeader>
           <TableBody>
             {rows.map((r) => (
-              <TableRow key={r.id} className="hover:bg-muted/50">
-                <TableCell className="font-medium cursor-pointer" onClick={() => setViewId(r.id)}>{r.number}</TableCell>
-                <TableCell className="cursor-pointer" onClick={() => setViewId(r.id)}>{r.customer?.name ?? "—"}</TableCell>
-                <TableCell className="cursor-pointer" onClick={() => setViewId(r.id)}>{formatDate(r.created_at)}</TableCell>
-                <TableCell className="cursor-pointer" onClick={() => setViewId(r.id)}>
+              <TableRow key={r.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => setViewId(r.id)}>
+                <TableCell className="font-medium">{r.number}</TableCell>
+                <TableCell>{r.customer?.name ?? "—"}</TableCell>
+                <TableCell>{formatDate(r.created_at)}</TableCell>
+                <TableCell>
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${r.status === "paid" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
                     {r.status.toUpperCase()}
                   </span>
                 </TableCell>
-                <TableCell className="text-right cursor-pointer" onClick={() => setViewId(r.id)}>{formatMoney(r.total, symbol)}</TableCell>
+                <TableCell className="text-right">{formatMoney(r.total, symbol)}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" onClick={() => togglePaid(r.id, r.status)}>
+                  <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); togglePaid(r.id, r.status); }}>
                     <Check className="h-3 w-3 mr-1" /> {r.status === "paid" ? "Mark unpaid" : "Mark paid"}
                   </Button>
                 </TableCell>
