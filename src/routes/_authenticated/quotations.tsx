@@ -81,7 +81,7 @@ function QuotationsPage() {
         </Table>
       </div>
       <Dialog open={!!viewId} onOpenChange={(o) => !o && setViewId(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl" onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
           {viewId && <QuotationPreview id={viewId} onConverted={(invId) => { setViewId(null); navigate({ to: "/invoices" }); }} />}
         </DialogContent>
       </Dialog>
