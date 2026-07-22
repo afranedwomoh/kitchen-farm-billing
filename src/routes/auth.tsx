@@ -26,10 +26,17 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/dashboard" });
+    });
+    supabase.from("business_settings").select("logo_url").eq("id", 1).maybeSingle().then(({ data }) => {
+      if (data?.logo_url) {
+        const { data: pub } = supabase.storage.from("business-assets").getPublicUrl(data.logo_url);
+        setLogoUrl(pub.publicUrl);
+      }
     });
   }, [navigate]);
 
@@ -59,10 +66,14 @@ function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-muted/30 to-accent/20 p-4">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl tracking-tight">Drock Enterprise</CardTitle>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Drock Enterprise" className="h-24 mx-auto mb-2" />
+          ) : (
+            <CardTitle className="text-2xl tracking-tight">Drock Enterprise</CardTitle>
+          )}
           <CardDescription>Invoicing & stock management</CardDescription>
         </CardHeader>
         <CardContent>
