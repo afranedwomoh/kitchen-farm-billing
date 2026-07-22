@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, FileDown, ImageDown, ArrowRightCircle } from "lucide-react";
+import { Plus, FileDown, ImageDown, ArrowRightCircle, Pencil, Trash2 } from "lucide-react";
 import { formatDate, formatMoney } from "@/lib/format";
-import { DocumentBuilder } from "@/components/DocumentBuilder";
+import { DocumentBuilder, type EditInitial } from "@/components/DocumentBuilder";
 import { InvoiceDocument, type DocData } from "@/components/InvoiceDocument";
 import { getSignedUrl, urlToDataUrl } from "@/lib/storage-helper";
 import { exportNodeAsPdf, exportNodeAsPng } from "@/lib/export-invoice";
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/quotations")({
 type Row = { id: string; number: string; total: number; status: string; created_at: string; customer: { name: string } | null };
 
 function QuotationsPage() {
-  const { user } = useSession();
+  const { user, isAdmin } = useSession();
   const [rows, setRows] = useState<Row[]>([]);
   const [symbol, setSymbol] = useState("GH₵");
   const [vat, setVat] = useState(20);
@@ -82,17 +82,33 @@ function QuotationsPage() {
       </div>
       <Dialog open={!!viewId} onOpenChange={(o) => !o && setViewId(null)}>
         <DialogContent className="max-w-2xl" onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
-          {viewId && <QuotationPreview id={viewId} onConverted={(invId) => { setViewId(null); navigate({ to: "/invoices" }); }} />}
+          {viewId && (
+            <QuotationPreview
+              id={viewId}
+              isAdmin={isAdmin}
+              userId={user?.id ?? ""}
+              defaultVatRate={vat}
+              symbol={symbol}
+              onConverted={() => { setViewId(null); navigate({ to: "/invoices" }); }}
+              onDeleted={() => { setViewId(null); load(); }}
+              onUpdated={() => { load(); }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
   );
 }
 
-function QuotationPreview({ id, onConverted }: { id: string; onConverted: (invoiceId: string) => void }) {
+function QuotationPreview({ id, isAdmin, userId, defaultVatRate, symbol, onConverted, onDeleted, onUpdated }: {
+  id: string; isAdmin: boolean; userId: string; defaultVatRate: number; symbol: string;
+  onConverted: (invoiceId: string) => void; onDeleted: () => void; onUpdated: () => void;
+}) {
   const [data, setData] = useState<DocData | null>(null);
   const [converted, setConverted] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editInitial, setEditInitial] = useState<EditInitial | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [id]);
@@ -116,6 +132,17 @@ function QuotationPreview({ id, onConverted }: { id: string; onConverted: (invoi
       customer: q.customer, items,
       subtotal: Number(q.subtotal), vat_rate: Number(q.vat_rate), vat_amount: Number(q.vat_amount), total: Number(q.total),
       currency_symbol: settings.currency_symbol, notes: q.notes,
+    });
+    setEditInitial({
+      editId: q.id,
+      customerId: q.customer_id,
+      lines: (q.items ?? []).map((it: any) => ({
+        product_id: it.product_id, product_name: it.product_name, product_image_url: it.product_image_url,
+        unit_price: Number(it.unit_price), quantity: it.quantity,
+      })),
+      applyVat: Number(q.vat_rate) > 0,
+      vatRate: Number(q.vat_rate) || defaultVatRate,
+      notes: q.notes ?? "",
     });
   }
 
@@ -144,8 +171,22 @@ function QuotationPreview({ id, onConverted }: { id: string; onConverted: (invoi
     } catch (e: any) { toast.error(e.message); } finally { setBusy(false); }
   }
 
+  async function remove() {
+    if (!confirm("Delete this quotation? This cannot be undone.")) return;
+    const { error } = await supabase.from("quotations").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Quotation deleted");
+    onDeleted();
+  }
+
   return (
     <div className="space-y-4">
+      {isAdmin && (
+        <div className="flex gap-2 justify-end border-b pb-3">
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
+          <Button variant="destructive" size="sm" onClick={remove}><Trash2 className="h-4 w-4 mr-1" /> Delete</Button>
+        </div>
+      )}
       <div className="flex justify-center bg-muted/30 p-4 rounded-lg overflow-auto max-h-[60vh]">
         {data && <InvoiceDocument ref={ref} data={data} />}
       </div>
@@ -154,6 +195,17 @@ function QuotationPreview({ id, onConverted }: { id: string; onConverted: (invoi
         <Button variant="outline" size="sm" onClick={() => ref.current && exportNodeAsPdf(ref.current, `${data?.number}.pdf`)} disabled={!data}><FileDown className="h-4 w-4 mr-1" /> PDF</Button>
         {!converted && <Button size="sm" onClick={convert} disabled={busy || !data}><ArrowRightCircle className="h-4 w-4 mr-1" /> Convert to invoice</Button>}
       </div>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Edit quotation</DialogTitle></DialogHeader>
+          {editInitial && (
+            <DocumentBuilder kind="quotation" userId={userId} defaultVatRate={defaultVatRate} symbol={symbol}
+              initial={editInitial}
+              onSaved={async () => { setEditOpen(false); await load(); onUpdated(); }} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
