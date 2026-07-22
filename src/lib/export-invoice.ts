@@ -2,28 +2,33 @@ import html2canvas from "html2canvas-pro";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
 
+async function shareOrOpen(blob: Blob, filename: string, mimeType: string) {
+  const file = new File([blob], filename, { type: mimeType });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: filename });
+      return;
+    } catch (e) {
+      // user cancelled the share sheet, or share failed — fall through to opening a tab
+    }
+  }
+  const blobUrl = URL.createObjectURL(blob);
+  window.open(blobUrl, "_blank");
+}
+
 export async function exportNodeAsPng(node: HTMLElement, filename: string) {
-  const win = window.open("", "_blank");
   try {
     const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff", useCORS: true, allowTaint: true });
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        if (win) win.close();
-        toast.error("Export failed: could not generate image");
-        return;
-      }
-      const blobUrl = URL.createObjectURL(blob);
-      if (win) win.location.href = blobUrl;
-      else window.open(blobUrl, "_blank");
+    canvas.toBlob(async (blob) => {
+      if (!blob) return toast.error("Export failed: could not generate image");
+      await shareOrOpen(blob, filename, "image/png");
     }, "image/png");
   } catch (e: any) {
-    if (win) win.close();
     toast.error(`Export failed: ${e.message ?? e}`);
   }
 }
 
 export async function exportNodeAsPdf(node: HTMLElement, filename: string) {
-  const win = window.open("", "_blank");
   try {
     const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff", useCORS: true, allowTaint: true });
     const imgData = canvas.toDataURL("image/png");
@@ -36,11 +41,9 @@ export async function exportNodeAsPdf(node: HTMLElement, filename: string) {
     if (imgRatio > pageRatio) h = pageW / imgRatio; else w = pageH * imgRatio;
     const x = (pageW - w) / 2, y = (pageH - h) / 2;
     pdf.addImage(imgData, "PNG", x, y, w, h);
-    const blobUrl = pdf.output("bloburl") as unknown as string;
-    if (win) win.location.href = blobUrl;
-    else window.open(blobUrl, "_blank");
+    const blob = pdf.output("blob") as Blob;
+    await shareOrOpen(blob, filename, "application/pdf");
   } catch (e: any) {
-    if (win) win.close();
     toast.error(`Export failed: ${e.message ?? e}`);
   }
 }
