@@ -165,6 +165,34 @@ export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved 
       <div className="flex justify-end">
         <Button onClick={save} disabled={busy}>{busy ? "Saving…" : `Create ${kind}`}</Button>
       </div>
+
+      <Dialog open={newCustOpen} onOpenChange={setNewCustOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>New customer</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><Label>Name</Label><Input value={nc.name} onChange={(e) => setNc({ ...nc, name: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Phone</Label><Input value={nc.phone} onChange={(e) => setNc({ ...nc, phone: e.target.value })} /></div>
+              <div><Label>Email</Label><Input type="email" value={nc.email} onChange={(e) => setNc({ ...nc, email: e.target.value })} /></div>
+            </div>
+            <div><Label>Address</Label><Textarea value={nc.address} onChange={(e) => setNc({ ...nc, address: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button disabled={ncBusy || !nc.name} onClick={async () => {
+              setNcBusy(true);
+              try {
+                const { data, error } = await supabase.from("customers").insert({ ...nc, created_by: userId }).select("id,name").single();
+                if (error) throw error;
+                setCustomers((prev) => [...prev, data as Customer].sort((a, b) => a.name.localeCompare(b.name)));
+                setCustomerId(data.id);
+                setNc({ name: "", phone: "", email: "", address: "" });
+                setNewCustOpen(false);
+                toast.success("Customer added");
+              } catch (e: any) { toast.error(e.message); } finally { setNcBusy(false); }
+            }}>{ncBusy ? "Saving…" : "Save customer"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
