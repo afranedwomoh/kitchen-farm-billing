@@ -49,10 +49,10 @@ function Dashboard() {
   }, [user?.id]);
 
   const cards = [
-    { label: "Products", value: stats.products, icon: Package },
-    { label: "Customers", value: stats.customers, icon: Users },
-    { label: "Quotations", value: stats.quotations, icon: FileText },
-    { label: isAdmin ? "Invoices" : "My invoices", value: stats.invoices, icon: Receipt },
+    { label: "Products", value: stats.products, icon: Package, to: "/products" as const },
+    { label: "Customers", value: stats.customers, icon: Users, to: "/customers" as const },
+    { label: "Quotations", value: stats.quotations, icon: FileText, to: "/quotations" as const },
+    { label: isAdmin ? "Invoices" : "My invoices", value: stats.invoices, icon: Receipt, to: "/invoices" as const },
   ];
 
   return (
@@ -63,13 +63,15 @@ function Dashboard() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
-          <Card key={c.label}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{c.label}</CardTitle>
-              <c.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent><div className="text-2xl font-semibold">{c.value}</div></CardContent>
-          </Card>
+          <Link key={c.label} to={c.to} className="block">
+            <Card className="transition-colors hover:bg-muted/50 hover:border-primary/50 cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{c.label}</CardTitle>
+                <c.icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent><div className="text-2xl font-semibold">{c.value}</div></CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
       <div className="grid gap-4 md:grid-cols-2">
