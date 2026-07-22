@@ -1,3 +1,17 @@
+import html2canvas from "html2canvas-pro";
+import jsPDF from "jspdf";
+import { toast } from "sonner";
+
+export async function exportNodeAsPng(node: HTMLElement, filename: string) {
+  try {
+    const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff", useCORS: true, allowTaint: true });
+    const url = canvas.toDataURL("image/png");
+    openOrDownload(url, filename);
+  } catch (e: any) {
+    toast.error(`Export failed: ${e.message ?? e}`);
+  }
+}
+
 export async function exportNodeAsPdf(node: HTMLElement, filename: string) {
   const win = window.open("", "_blank");
   try {
@@ -19,4 +33,18 @@ export async function exportNodeAsPdf(node: HTMLElement, filename: string) {
     if (win) win.close();
     toast.error(`Export failed: ${e.message ?? e}`);
   }
+}
+
+function openOrDownload(dataUrl: string, filename: string) {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS) {
+    window.open(dataUrl, "_blank");
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
