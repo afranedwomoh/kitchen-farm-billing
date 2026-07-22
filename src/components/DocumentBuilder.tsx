@@ -30,6 +30,9 @@ export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved 
   const [vatRate, setVatRate] = useState(defaultVatRate);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [newCustOpen, setNewCustOpen] = useState(false);
+  const [nc, setNc] = useState({ name: "", phone: "", email: "", address: "" });
+  const [ncBusy, setNcBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
