@@ -18,7 +18,7 @@ async function shareOrOpen(blob: Blob, filename: string, mimeType: string) {
 
 export async function exportNodeAsPng(node: HTMLElement, filename: string) {
   try {
-    const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff", useCORS: true, allowTaint: true });
+    const canvas = await html2canvas(node, { scale: 3, backgroundColor: "#ffffff", useCORS: true, allowTaint: true });
     canvas.toBlob(async (blob) => {
       if (!blob) return toast.error("Export failed: could not generate image");
       await shareOrOpen(blob, filename, "image/png");
@@ -30,7 +30,7 @@ export async function exportNodeAsPng(node: HTMLElement, filename: string) {
 
 export async function exportNodeAsPdf(node: HTMLElement, filename: string) {
   try {
-    const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff", useCORS: true, allowTaint: true });
+    const canvas = await html2canvas(node, { scale: 3, backgroundColor: "#ffffff", useCORS: true, allowTaint: true });
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF({ unit: "mm", format: "a5", orientation: "portrait" });
     const pageW = pdf.internal.pageSize.getWidth();
