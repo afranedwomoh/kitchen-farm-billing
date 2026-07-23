@@ -100,6 +100,13 @@ function QuotationsPage() {
   );
 }
 
+function fileBaseName(data: DocData | null) {
+  if (!data) return "document";
+  const kindLabel = data.kind === "INVOICE" ? "Invoice" : "Quotation";
+  const custName = data.customer?.name?.trim() || "Customer";
+  return `${custName} - ${kindLabel}`;
+}
+
 function QuotationPreview({ id, isAdmin, userId, defaultVatRate, symbol, onConverted, onDeleted, onUpdated }: {
   id: string; isAdmin: boolean; userId: string; defaultVatRate: number; symbol: string;
   onConverted: (invoiceId: string) => void; onDeleted: () => void; onUpdated: () => void;
@@ -182,7 +189,7 @@ function QuotationPreview({ id, isAdmin, userId, defaultVatRate, symbol, onConve
   return (
     <div className="space-y-4">
       {isAdmin && (
-        <div className="flex gap-2 justify-end border-b pb-3">
+        <div className="flex flex-wrap gap-2 justify-end border-b pb-3">
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
           <Button variant="destructive" size="sm" onClick={remove}><Trash2 className="h-4 w-4 mr-1" /> Delete</Button>
         </div>
@@ -190,9 +197,9 @@ function QuotationPreview({ id, isAdmin, userId, defaultVatRate, symbol, onConve
       <div className="flex justify-center bg-muted/30 p-4 rounded-lg overflow-auto max-h-[60vh]">
         {data && <InvoiceDocument ref={ref} data={data} />}
       </div>
-      <div className="flex gap-2 justify-end">
-        <Button variant="outline" size="sm" onClick={() => ref.current && exportNodeAsPng(ref.current, `${data?.number}.png`)} disabled={!data}><ImageDown className="h-4 w-4 mr-1" /> PNG</Button>
-        <Button variant="outline" size="sm" onClick={() => ref.current && exportNodeAsPdf(ref.current, `${data?.number}.pdf`)} disabled={!data}><FileDown className="h-4 w-4 mr-1" /> PDF</Button>
+      <div className="flex flex-wrap gap-2 justify-end">
+        <Button variant="outline" size="sm" onClick={() => ref.current && exportNodeAsPng(ref.current, `${fileBaseName(data)}.png`)} disabled={!data}><ImageDown className="h-4 w-4 mr-1" /> PNG</Button>
+        <Button variant="outline" size="sm" onClick={() => ref.current && exportNodeAsPdf(ref.current, `${fileBaseName(data)}.pdf`)} disabled={!data}><FileDown className="h-4 w-4 mr-1" /> PDF</Button>
         {!converted && <Button size="sm" onClick={convert} disabled={busy || !data}><ArrowRightCircle className="h-4 w-4 mr-1" /> Convert to invoice</Button>}
       </div>
 
