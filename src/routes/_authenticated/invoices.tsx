@@ -181,7 +181,7 @@ function InvoicePreview({ id, isAdmin, userId, defaultVatRate, symbol, onStatusC
   return (
     <div className="space-y-4">
       {isAdmin && (
-        <div className="flex gap-2 justify-end border-b pb-3">
+        <div className="flex flex-wrap gap-2 justify-end border-b pb-3">
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
           <Button variant="destructive" size="sm" onClick={remove}><Trash2 className="h-4 w-4 mr-1" /> Delete</Button>
         </div>
@@ -189,7 +189,7 @@ function InvoicePreview({ id, isAdmin, userId, defaultVatRate, symbol, onStatusC
       <div className="flex justify-center bg-muted/30 p-4 rounded-lg overflow-auto max-h-[60vh]">
         {data && <InvoiceDocument ref={ref} data={data} />}
       </div>
-      <div className="flex gap-2 justify-end">
+      <div className="flex flex-wrap gap-2 justify-end">
         <Button variant="outline" size="sm" onClick={togglePaid} disabled={!data}><Check className="h-4 w-4 mr-1" /> {status === "paid" ? "Mark unpaid" : "Mark paid"}</Button>
         <Button variant="outline" size="sm" onClick={() => ref.current && exportNodeAsPng(ref.current, `${data?.number}.png`)} disabled={!data}><ImageDown className="h-4 w-4 mr-1" /> PNG</Button>
         <Button size="sm" onClick={() => ref.current && exportNodeAsPdf(ref.current, `${data?.number}.pdf`)} disabled={!data}><FileDown className="h-4 w-4 mr-1" /> PDF</Button>
