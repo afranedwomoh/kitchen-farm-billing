@@ -47,3 +47,28 @@ export async function exportNodeAsPdf(node: HTMLElement, filename: string) {
     toast.error(`Export failed: ${e.message ?? e}`);
   }
 }
+
+export function printNode(node: HTMLElement) {
+  const win = window.open("", "_blank");
+  if (!win) {
+    toast.error("Please allow pop-ups to print");
+    return;
+  }
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Print</title>
+        <style>
+          body { margin: 0; display: flex; justify-content: center; padding: 16px; background: #fff; }
+        </style>
+      </head>
+      <body>${node.outerHTML}</body>
+    </html>
+  `);
+  win.document.close();
+  setTimeout(() => {
+    win.focus();
+    win.print();
+  }, 400);
+}
