@@ -4,12 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, FileDown, ImageDown, ArrowRightCircle, Pencil, Trash2 } from "lucide-react";
+import { Plus, FileDown, ImageDown, ArrowRightCircle, Pencil, Trash2, Printer } from "lucide-react";
 import { formatDate, formatMoney } from "@/lib/format";
 import { DocumentBuilder, type EditInitial } from "@/components/DocumentBuilder";
 import { InvoiceDocument, type DocData } from "@/components/InvoiceDocument";
 import { getSignedUrl, urlToDataUrl } from "@/lib/storage-helper";
-import { exportNodeAsPdf, exportNodeAsPng } from "@/lib/export-invoice";
+import { exportNodeAsPdf, exportNodeAsPng, printNode } from "@/lib/export-invoice";
 import { useSession } from "@/hooks/useSession";
 import { toast } from "sonner";
 
@@ -81,7 +81,7 @@ function QuotationsPage() {
         </Table>
       </div>
       <Dialog open={!!viewId} onOpenChange={(o) => !o && setViewId(null)}>
-        <DialogContent className="max-w-2xl" onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
+        <DialogContent className="w-[95vw] max-w-2xl" onInteractOutside={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>
           {viewId && (
             <QuotationPreview
               id={viewId}
@@ -198,13 +198,14 @@ function QuotationPreview({ id, isAdmin, userId, defaultVatRate, symbol, onConve
         {data && <InvoiceDocument ref={ref} data={data} />}
       </div>
       <div className="flex flex-wrap gap-2 justify-end">
+        <Button variant="outline" size="sm" onClick={() => ref.current && printNode(ref.current)} disabled={!data}><Printer className="h-4 w-4 mr-1" /> Print</Button>
         <Button variant="outline" size="sm" onClick={() => ref.current && exportNodeAsPng(ref.current, `${fileBaseName(data)}.png`)} disabled={!data}><ImageDown className="h-4 w-4 mr-1" /> PNG</Button>
         <Button variant="outline" size="sm" onClick={() => ref.current && exportNodeAsPdf(ref.current, `${fileBaseName(data)}.pdf`)} disabled={!data}><FileDown className="h-4 w-4 mr-1" /> PDF</Button>
         {!converted && <Button size="sm" onClick={convert} disabled={busy || !data}><ArrowRightCircle className="h-4 w-4 mr-1" /> Convert to invoice</Button>}
       </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[95vw] max-w-2xl">
           <DialogHeader><DialogTitle>Edit quotation</DialogTitle></DialogHeader>
           {editInitial && (
             <DocumentBuilder kind="quotation" userId={userId} defaultVatRate={defaultVatRate} symbol={symbol}
