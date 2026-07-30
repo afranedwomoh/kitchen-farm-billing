@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Package, Users, FileText, Receipt, Settings, LogOut, Menu } from "lucide-react";
+import { LayoutDashboard, Package, Users, FileText, Receipt, Settings, LogOut, Menu, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { to: "/customers", label: "Customers", icon: Users },
     { to: "/quotations", label: "Quotations", icon: FileText },
     { to: "/invoices", label: "Invoices", icon: Receipt },
+    ...(isAdmin ? [{ to: "/analytics", label: "Analytics", icon: BarChart3 }] : []),
     ...(isAdmin ? [{ to: "/settings", label: "Settings", icon: Settings }] : []),
   ];
 
