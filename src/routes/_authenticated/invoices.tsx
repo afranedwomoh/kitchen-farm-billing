@@ -196,11 +196,11 @@ function InvoicePreview({ id, isAdmin, userId, defaultVatRate, symbol, onStatusC
       <div className="flex justify-center bg-muted/30 p-4 rounded-lg overflow-auto max-h-[60vh]">
         {data && <InvoiceDocument ref={ref} data={data} />}
       </div>
-      <div className="flex flex-wrap gap-2 justify-end">
-        <Button variant="outline" size="sm" onClick={togglePaid} disabled={!data}><Check className="h-4 w-4 mr-1" /> {status === "paid" ? "Mark unpaid" : "Mark paid"}</Button>
-        <Button variant="outline" size="sm" onClick={() => ref.current && printNode(ref.current)} disabled={!data}><Printer className="h-4 w-4 mr-1" /> Print</Button>
-        <Button variant="outline" size="sm" onClick={() => ref.current && exportNodeAsPng(ref.current, `${fileBaseName(data)}.png`)} disabled={!data}><ImageDown className="h-4 w-4 mr-1" /> PNG</Button>
-        <Button size="sm" onClick={() => ref.current && exportNodeAsPdf(ref.current, `${fileBaseName(data)}.pdf`)} disabled={!data}><FileDown className="h-4 w-4 mr-1" /> PDF</Button>
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 sm:justify-end">
+        <Button variant="outline" className="h-11" onClick={togglePaid} disabled={!data}><Check className="h-4 w-4 mr-1.5" /> {status === "paid" ? "Mark unpaid" : "Mark paid"}</Button>
+        <Button variant="outline" className="h-11" onClick={() => ref.current && printNode(ref.current)} disabled={!data}><Printer className="h-4 w-4 mr-1.5" /> Print</Button>
+        <Button variant="outline" className="h-11" onClick={() => ref.current && exportNodeAsPng(ref.current, `${fileBaseName(data)}.png`)} disabled={!data}><ImageDown className="h-4 w-4 mr-1.5" /> PNG</Button>
+        <Button className="h-11" onClick={() => ref.current && exportNodeAsPdf(ref.current, `${fileBaseName(data)}.pdf`)} disabled={!data}><FileDown className="h-4 w-4 mr-1.5" /> PDF</Button>
       </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
