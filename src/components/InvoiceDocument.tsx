@@ -10,6 +10,7 @@ export type DocData = {
   customer: { name: string; phone?: string | null; email?: string | null; address?: string | null };
   items: { product_name: string; product_image_url_signed?: string | null; unit_price: number; quantity: number; line_total: number }[];
   subtotal: number;
+  discount: number;
   vat_rate: number;
   vat_amount: number;
   total: number;
@@ -133,6 +134,11 @@ export const InvoiceDocument = forwardRef<HTMLDivElement, { data: DocData }>(fun
           <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
             <span style={{ color: "#666" }}>Subtotal</span><span>{formatMoney(data.subtotal, sym)}</span>
           </div>
+          {data.discount > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
+              <span style={{ color: "#666" }}>Discount</span><span>-{formatMoney(data.discount, sym)}</span>
+            </div>
+          )}
           <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
             <span style={{ color: "#666" }}>VAT ({data.vat_rate}%)</span><span>{formatMoney(data.vat_amount, sym)}</span>
           </div>
