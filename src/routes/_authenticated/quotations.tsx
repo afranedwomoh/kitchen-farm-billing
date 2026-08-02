@@ -137,7 +137,7 @@ function QuotationPreview({ id, isAdmin, userId, defaultVatRate, symbol, onConve
       kind: "QUOTATION", number: q.number, date: q.created_at,
       business: { name: settings.name, address: settings.address, phone: settings.phone, email: settings.email, logoUrl },
       customer: q.customer, items,
-      subtotal: Number(q.subtotal), vat_rate: Number(q.vat_rate), vat_amount: Number(q.vat_amount), total: Number(q.total),
+      subtotal: Number(q.subtotal), discount: Number(q.discount ?? 0), vat_rate: Number(q.vat_rate), vat_amount: Number(q.vat_amount), total: Number(q.total),
       currency_symbol: settings.currency_symbol, notes: q.notes,
     });
     setEditInitial({
@@ -149,6 +149,7 @@ function QuotationPreview({ id, isAdmin, userId, defaultVatRate, symbol, onConve
       })),
       applyVat: Number(q.vat_rate) > 0,
       vatRate: Number(q.vat_rate) || defaultVatRate,
+      discount: Number(q.discount ?? 0),
       notes: q.notes ?? "",
     });
   }
@@ -162,7 +163,7 @@ function QuotationPreview({ id, isAdmin, userId, defaultVatRate, symbol, onConve
       const { data: user } = await supabase.auth.getUser();
       const { data: inv, error } = await supabase.from("invoices").insert({
         customer_id: q.customer_id, created_by: user.user!.id,
-        subtotal: q.subtotal, vat_rate: q.vat_rate, vat_amount: q.vat_amount, total: q.total,
+        subtotal: q.subtotal, discount: q.discount ?? 0, vat_rate: q.vat_rate, vat_amount: q.vat_amount, total: q.total,
         notes: q.notes, from_quotation_id: q.id,
       }).select("id").single();
       if (error) throw error;
