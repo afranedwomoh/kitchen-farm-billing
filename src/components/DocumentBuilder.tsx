@@ -21,6 +21,7 @@ export type EditInitial = {
   lines: Line[];
   applyVat: boolean;
   vatRate: number;
+  discount: number;
   notes: string;
 };
 
@@ -38,6 +39,7 @@ export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved,
   const [lines, setLines] = useState<Line[]>(initial?.lines ?? []);
   const [applyVat, setApplyVat] = useState(initial?.applyVat ?? true);
   const [vatRate, setVatRate] = useState(initial?.vatRate ?? defaultVatRate);
+  const [discount, setDiscount] = useState(String(initial?.discount ?? "0"));
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [busy, setBusy] = useState(false);
   const [newCustOpen, setNewCustOpen] = useState(false);
@@ -58,8 +60,10 @@ export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved,
   }, []);
 
   const subtotal = useMemo(() => lines.reduce((a, l) => a + l.unit_price * l.quantity, 0), [lines]);
-  const vatAmount = applyVat ? subtotal * (Number(vatRate) / 100) : 0;
-  const total = subtotal + vatAmount;
+  const discountAmount = Math.min(Math.max(Number(discount) || 0, 0), subtotal);
+  const discountedSubtotal = subtotal - discountAmount;
+  const vatAmount = applyVat ? discountedSubtotal * (Number(vatRate) / 100) : 0;
+  const total = discountedSubtotal + vatAmount;
 
   function addLine() {
     setLines([...lines, { product_id: null, product_name: "", product_image_url: null, unit_price: 0, quantity: 1 }]);
@@ -83,6 +87,7 @@ export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved,
         customer_id: customerId,
         created_by: userId,
         subtotal,
+        discount: discountAmount,
         vat_rate: applyVat ? Number(vatRate) : 0,
         vat_amount: vatAmount,
         total,
@@ -172,10 +177,20 @@ export function DocumentBuilder({ kind, userId, defaultVatRate, symbol, onSaved,
         </div>
       </div>
 
+      <div className="grid gap-3 md:grid-cols-2">
+        <div>
+          <Label>Discount ({symbol})</Label>
+          <Input type="number" step="0.01" min="0" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0.00" />
+        </div>
+      </div>
+
       <div><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional notes…" /></div>
 
       <div className="rounded-md border p-4 space-y-1 text-sm">
         <div className="flex justify-between"><span>Subtotal</span><span>{formatMoney(subtotal, symbol)}</span></div>
+        {discountAmount > 0 && (
+          <div className="flex justify-between"><span>Discount</span><span>-{formatMoney(discountAmount, symbol)}</span></div>
+        )}
         <div className="flex justify-between"><span>VAT ({applyVat ? vatRate : 0}%)</span><span>{formatMoney(vatAmount, symbol)}</span></div>
         <div className="flex justify-between font-semibold text-base pt-1 border-t"><span>Total</span><span>{formatMoney(total, symbol)}</span></div>
       </div>
