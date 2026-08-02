@@ -152,7 +152,7 @@ function InvoicePreview({ id, isAdmin, userId, defaultVatRate, symbol, onStatusC
       kind: "INVOICE", number: q.number, date: q.created_at, status: q.status,
       business: { name: settings.name, address: settings.address, phone: settings.phone, email: settings.email, logoUrl },
       customer: q.customer, items,
-      subtotal: Number(q.subtotal), vat_rate: Number(q.vat_rate), vat_amount: Number(q.vat_amount), total: Number(q.total),
+      subtotal: Number(q.subtotal), discount: Number(q.discount ?? 0), vat_rate: Number(q.vat_rate), vat_amount: Number(q.vat_amount), total: Number(q.total),
       currency_symbol: settings.currency_symbol, notes: q.notes,
     });
     setEditInitial({
@@ -164,6 +164,7 @@ function InvoicePreview({ id, isAdmin, userId, defaultVatRate, symbol, onStatusC
       })),
       applyVat: Number(q.vat_rate) > 0,
       vatRate: Number(q.vat_rate) || defaultVatRate,
+      discount: Number(q.discount ?? 0),
       notes: q.notes ?? "",
     });
   }
